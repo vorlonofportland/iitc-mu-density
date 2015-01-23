@@ -22,6 +22,36 @@ if(typeof window.plugin !== 'function') window.plugin = function() {};
 // use own namespace for plugin
 window.plugin.mudensity = function() {};
 
+window.plugin.mudensity.toRad = function(arg) {
+   return arg * Math.PI / 180;
+}
+
+window.plugin.mudensity.haversine = function(lat1,lat2,lng1,lng2) {
+   var Lat = window.plugin.mudensity.toRad((lat2-lat1)/1E6);
+   var Lng = window.plugin.mudensity.toRad((lng2-lng1)/1E6);
+
+   var R = 6371; // radius in kilometers
+
+   var a = Math.sin(Lat/2) * Math.sin (Lat/2) +
+           Math.cos(window.plugin.mudensity.toRad(lat1/1E6)) *
+           Math.cos(window.plugin.mudensity.toRad(lat2/1E6)) *
+           Math.sin(Lng/2) * Math.sin (Lng/2);
+   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+   return R * c;
+}
+
+window.plugin.mudensity.area = function(f) {
+   var a = window.plugin.mudensity.haversine(f.portal1.lat, f.portal2.lat,
+                                             f.portal1.lng, f.portal2.lng);
+   var b = window.plugin.mudensity.haversine(f.portal2.lat, f.portal3.lat,
+                                             f.portal2.lng, f.portal3.lng);
+   var c = window.plugin.mudensity.haversine(f.portal3.lat, f.portal1.lat,
+                                             f.portal3.lng, f.portal1.lng);
+
+   var s = (a+b+c)/2;
+   return Math.sqrt(s * (s - a) * (s - b) * (s - c));
+}
+
 window.plugin.mudensity.handleData = function(data) {
 
   // the link and field can come in any order in the data, so we have to
@@ -31,7 +61,7 @@ window.plugin.mudensity.handleData = function(data) {
   // there is more than one portal that both source and target portals are
   // linked to.
   var candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                    timestamp: null };
+                    timestamp: null, area: 0 };
 
   $.each(data.raw.success, function(ind, json) {
 
@@ -40,6 +70,7 @@ window.plugin.mudensity.handleData = function(data) {
     var isField = false;
     var portal1 = null;
     var portal2 = null;
+    var portal3 = null;
     var mu = 0;
 
     $.each(json[2].plext.markup, function(ind, markup) {
@@ -65,8 +96,8 @@ window.plugin.mudensity.handleData = function(data) {
         break;
       case 'PORTAL':
         var portal = { name: markup[1].name,
-                       lat: markup[1].latE6/1E6,
-                       lng: markup[1].lngE6/1E6 };
+                       lat: markup[1].latE6,
+                       lng: markup[1].lngE6 };
         if (!portal1)
           portal1 = portal;
         else
@@ -87,7 +118,7 @@ window.plugin.mudensity.handleData = function(data) {
           || candidate.timestamp != json[1])
       {
         candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                      timestamp: null };
+                      timestamp: null, area: 0 };
       }
     }
 
@@ -101,10 +132,56 @@ window.plugin.mudensity.handleData = function(data) {
       candidate.mu = mu;
 
     if (candidate.portal2 && candidate.mu) {
-      // FIXME: figure out portal3
-      window.plugin.mudensity.listFields.push(candidate);
+      // we don't try to map portals to guids because the guids aren't
+      // actually relevant for finding fields, since fields are just a set of
+      // points without references to the portals.
+
+      $.each(window.fields, function(g,f) {
+        var d = f.options.data;
+        var point = [0,0,0];
+        for (var i = 0; i < 3; i++)
+        {
+           if (d.points[i].latE6 == candidate.portal1.lat
+               && d.points[i].lngE6 == candidate.portal1.lng)
+           {
+             point[i] = 1;
+           } else if (d.points[i].latE6 == candidate.portal2.lat
+               && d.points[i].lngE6 == candidate.portal2.lng)
+           {
+             point[i] = 2;
+           }
+        }
+        // not a match.
+        if (point[0] + point[1] + point[2] < 3)
+          return true;
+
+        // more than one match, we don't know which is which.
+        if (portal3) {
+          portal3 = null;
+          return false;
+        }
+
+        for (var i = 0; i < 3; i++)
+        {
+          if (point[i] == 0)
+          {
+              portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6 };
+          }
+        } 
+      });
+
+      if (portal3) {
+        candidate.portal3 = portal3;
+        candidate.area = window.plugin.mudensity.area(candidate);
+//        alert("Density is between "
+//              + ((candidate.mu-.5)/candidate.area).toString()
+//              + " and "
+//              + ((candidate.mu+.5)/candidate.area).toString()
+//              + " MU/km^2");
+        window.plugin.mudensity.listFields.push(candidate);
+      }
       candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                    timestamp: null };
+                    timestamp: null, area: 0 };
     }
   });
 }
