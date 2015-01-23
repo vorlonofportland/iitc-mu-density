@@ -86,7 +86,9 @@ window.plugin.mudensity.handleData = function(data) {
         }
         if (isField) {
           var res = parseInt(markup[1].plain, 10);
-          if (res > 0) {
+          // ignore fields with 1MU, as this gives us an upper bound but
+          // no lower bound
+          if (res > 1) {
             mu = res;
           }
         }
