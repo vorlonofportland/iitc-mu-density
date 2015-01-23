@@ -24,19 +24,25 @@ window.plugin.mudensity = function() {};
 
 window.plugin.mudensity.handleData = function(data) {
 
+  // the link and field can come in any order in the data, so we have to
+  // handle the possibility of the field being either first or last.  If the
+  // link makes *multiple* fields, however, we punt, since we don't know for
+  // sure which MU maps to which field.  This can be determined by seeing that
+  // there is more than one portal that both source and target portals are
+  // linked to.
+  var candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
+                    timestamp: null };
+
   $.each(data.raw.success, function(ind, json) {
 
     // find portal information
     var skipThisMessage = false;
-    window.plugin.mudensity.isField = false;
-    window.plugin.mudensity.portal1 = null;
-    window.plugin.mudensity.portal2 = null;
+    var isField = false;
+    var portal1 = null;
+    var portal2 = null;
+    var mu = 0;
 
     $.each(json[2].plext.markup, function(ind, markup) {
-      if (window.plugin.mudensity.isField) {
-         alert ("is a field: " + markup[0]);
-      }
-      // FIXME
       switch(markup[0]) {
       case 'TEXT':
         // This could eventually be useful because we do get the count
@@ -47,48 +53,64 @@ window.plugin.mudensity.handleData = function(data) {
           skipThisMessage = true;
           return false;
         }
+        if (isField) {
+          var res = parseInt(markup[1].plain, 10);
+          if (res > 0) {
+            mu = res;
+          }
+        }
         if(markup[1].plain.indexOf('created a Control Field') !== -1) {
-          window.plugin.mudensity.isField = true;
+          isField = true;
         }
         break;
       case 'PORTAL':
-        // link messages are “player linked X to Y” and the player is at
-        // X.
-        if (!window.plugin.mudensity.portal1) {
-           window.plugin.mudensity.portal1 = { name: markup[1].name,
+        var portal = { name: markup[1].name,
                        lat: markup[1].latE6/1E6,
                        lng: markup[1].lngE6/1E6 };
-        } else {
-           window.plugin.mudensity.portal2 = { name: markup[1].name,
-                       lat: markup[1].latE6/1E6,
-                       lng: markup[1].lngE6/1E6 };
-        }
+        if (!portal1)
+          portal1 = portal;
+        else
+          portal2 = portal;
         break;
       }
+
     });
 
-    if (window.plugin.mudensity.isField) {
-      window.plugin.mudensity.listFields.push(candidate);
-
-      window.plugin.mudensity.candidate = null;
+    if (!portal1)
       return true;
+
+    if (candidate.portal1) {
+      if (candidate.portal1.lng != portal1.lng
+          || candidate.portal1.lat != portal1.lat
+          || (portal2 && candidate.portal2)
+          || (mu && candidate.mu)
+          || candidate.timestamp != json[1])
+      {
+        candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
+                      timestamp: null };
+      }
     }
-    if (window.plugin.mudensity.portal1 && window.plugin.mudensity.portal2)
-    {
-      window.plugin.mudensity.candidate = {
-		portal1: window.plugin.mudensity.portal1,
-		portal2: window.plugin.mudensity.portal2,
-	                                    mu: 0 };
+
+    if (!candidate.portal1) {
+      candidate.portal1 = portal1;
+      candidate.timestamp = json[1];
+    }
+    if (portal2)
+      candidate.portal2 = portal2;
+    if (mu)
+      candidate.mu = mu;
+
+    if (candidate.portal2 && candidate.mu) {
+      // FIXME: figure out portal3
+      window.plugin.mudensity.listFields.push(candidate);
+      candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
+                    timestamp: null };
     }
   });
 }
 
 
 
-window.plugin.mudensity.portal1 = null;
-window.plugin.mudensity.portal2 = null;
-window.plugin.mudensity.portal3 = null;
-window.plugin.mudensity.isField = false;
 window.plugin.mudensity.listFields = [];
 window.plugin.mudensity.listPortals = [];
 window.plugin.mudensity.sortBy = 1; // second column: level
