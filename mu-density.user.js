@@ -61,7 +61,7 @@ window.plugin.mudensity.handleData = function(data) {
   // there is more than one portal that both source and target portals are
   // linked to.
   var candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                    timestamp: null, area: 0 };
+                    timestamp: null, area: 0, center: null };
 
   $.each(data.raw.success, function(ind, json) {
 
@@ -120,7 +120,7 @@ window.plugin.mudensity.handleData = function(data) {
           || candidate.timestamp != json[1])
       {
         candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                      timestamp: null, area: 0 };
+                      timestamp: null, area: 0, center: null };
       }
     }
 
@@ -175,6 +175,9 @@ window.plugin.mudensity.handleData = function(data) {
       if (portal3) {
         candidate.portal3 = portal3;
         candidate.area = window.plugin.mudensity.area(candidate);
+        candidate.center = {
+             lat: (candidate.portal1.lat + candidate.portal2.lat + candidate.portal3.lat)/3,
+             lng: (candidate.portal1.lng + candidate.portal2.lng + candidate.portal3.lng)/3 };
 //        alert("Density is between "
 //              + ((candidate.mu-.5)/candidate.area).toString()
 //              + " and "
@@ -183,7 +186,7 @@ window.plugin.mudensity.handleData = function(data) {
         window.plugin.mudensity.listFields.push(candidate);
       }
       candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                    timestamp: null, area: 0 };
+                    timestamp: null, area: 0, center: null };
     }
   });
 }
