@@ -12,6 +12,14 @@
 // @grant          none
 // ==/UserScript==
 
+
+// Assumptions:
+// - If a single link causes multiple fields to be created, we assume that
+//   the larger fields have more MU.  This assumption will be correct for
+//   most cases, and the alternative is to not get any data when multiple
+//   fields are created by a single link.
+
+
 // TODO:
 // - give more descriptive names for the fields than just lat/long
 // - add support for sorting by distance from current location
@@ -118,44 +126,48 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
    }
 
    if (f.points.length == f.fields.length) {
-     // just handle the easy case for now, where there's only one field.
-     if (f.points.length == 1)
-     {
+     var candidates = [];
+
+     $.each(f.points, function(i,point) {
        var candidate = { portal1: portal1.portal,
                          portal2: f.target,
-                         portal3: f.points[0],
-                         mu: f.fields[0],
+                         portal3: point,
+                         mu: 0,
                          timestamp: f.link_ts,
                          area: 0,
                          center: null
        };
-
-       delete portal1.data[g];
-       if (!Object.keys(portal1.data).length)
-         delete portal1;
-       // fields with 1MU are kept up to this point to disambiguate multiple
-       // fields created at the same time but they should not be counted
-       // because they give us an upper bound on density but no lower bound
-       if (candidate.mu == 1)
-         return false;
-
        candidate.area = window.plugin.mudensity.area(candidate);
        candidate.center = {
             lat: (candidate.portal1.lat + candidate.portal2.lat + candidate.portal3.lat)/3,
             lng: (candidate.portal1.lng + candidate.portal2.lng + candidate.portal3.lng)/3
        };
+       candidates.push(candidate);
+     });
+
+     candidates.sort(function(a,b) { return a.area - b.area; });
+     f.fields.sort(function(a,b) { return a - b; });
+
+     $.each(candidates, function(i, candidate) {
+       candidates[i].mu = f.fields[i];
+       // fields with 1MU are kept up to this point to disambiguate multiple
+       // fields created at the same time but they should not be counted
+       // because they give us an upper bound on density but no lower bound
+       if (candidates[i].mu == 1)
+         return true;
+
        var key = candidate.portal1.lat.toString() + "_" + candidate.portal1.lng.toString()
                  + "_" + candidate.timestamp.toString() + "_"
                  + candidate.portal3.lat.toString() + "_"
                  + candidate.portal3.lng.toString();
-       window.plugin.mudensity.listFields[key] = candidate;
-       return false;
-     } else {
-       // FIXME: if we have more than one field along the same link, should
-       // we assume that the larger field is the one with the greater MU score?
-//       alert("More than one matching field from " + portal1.portal.name
-//             + " to " + f.target.name + ", skipping for now.");
-     }
+       window.plugin.mudensity.listFields[key] = candidates[i];
+     });
+
+     delete portal1.data[g];
+     if (!Object.keys(portal1.data).length)
+       delete portal1;
+
+     return false;
    }
 }
 
