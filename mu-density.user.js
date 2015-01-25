@@ -246,11 +246,8 @@ window.plugin.mudensity.columns = [
     value: function(field) { return field.area.toFixed(3).toString(); },
     sortValue: function(value, field) { return field.area; },
     format: function(cell, field, value) {
-//      var super = document.createElement("super");
-//      super.textContent = '2';
       $(cell)
-        .append(value + " km^2");
-//        .append(super);
+        .append(value + " km<sup>2</sup>");
     }
   },
   {
@@ -259,9 +256,13 @@ window.plugin.mudensity.columns = [
         var low = (field.mu-.5)/field.area;
         var high = (field.mu+.5)/field.area;
         return low.toFixed(3).toString() +
-               "-" + high.toFixed(3).toString() + " MU/km^2";
+               "-" + high.toFixed(3).toString();
     },
     sortValue: function(value, field) { return field.mu/field.area; },
+    format: function(cell, field, value) {
+      $(cell)
+        .append(value + " MU/km<sup>2</sup>");
+    }
   },
 ];
 
@@ -359,45 +360,7 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder) {
   var table, row, cell;
   var container = $('<div>');
 
-  table = document.createElement('table');
-  table.className = 'filter';
-  container.append(table);
-
-  row = table.insertRow(-1);
-
   var length = window.plugin.mudensity.displayFields.length;
-
-  ["All", "Neutral", "Resistance", "Enlightened"].forEach(function(label, i) {
-    cell = row.appendChild(document.createElement('th'));
-    cell.className = 'filter' + label.substr(0, 3);
-    cell.textContent = label+':';
-    cell.title = 'Show only portals of this color';
-    $(cell).click(function() {
-      $('#mudensity').empty().append(window.plugin.mudensity.portalTable(sortBy, sortOrder, i));
-    });
-
-
-    cell = row.insertCell(-1);
-    cell.className = 'filter' + label.substr(0, 3);
-    if(i != 0) cell.title = 'Hide portals of this color';
-    $(cell).click(function() {
-      $('#mudensity').empty().append(window.plugin.mudensity.portalTable(sortBy, sortOrder, -i));
-    });
-
-    switch(i-1) {
-      case -1:
-        cell.textContent = length;
-        break;
-      case 0:
-        cell.textContent = window.plugin.mudensity.neuP + ' (' + Math.round(window.plugin.mudensity.neuP/length*100) + '%)';
-        break;
-      case 1:
-        cell.textContent = window.plugin.mudensity.resP + ' (' + Math.round(window.plugin.mudensity.resP/length*100) + '%)';
-        break;
-      case 2:
-        cell.textContent = window.plugin.mudensity.enlP + ' (' + Math.round(window.plugin.mudensity.enlP/length*100) + '%)';
-    }
-  });
 
   table = document.createElement('table');
   table.className = 'portals';
@@ -440,8 +403,7 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder) {
     table.appendChild(row);
   });
 
-  container.append('<div class="disclaimer">Click on portals table headers to sort by that column. '
-    + 'Click on <b>All, Neutral, Resistance, Enlightened</b> to only show portals owner by that faction or on the number behind the factions to show all but those portals.</div>');
+  container.append('<div class="disclaimer">Click on column headers to sort by that column.</div>');
 
   return container;
 }
