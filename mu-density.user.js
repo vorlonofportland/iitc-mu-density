@@ -206,9 +206,6 @@ window.plugin.mudensity.listFields = [];
 window.plugin.mudensity.displayFields = [];
 window.plugin.mudensity.sortBy = 3; // fourth column: density
 window.plugin.mudensity.sortOrder = -1;
-window.plugin.mudensity.enlP = 0;
-window.plugin.mudensity.resP = 0;
-window.plugin.mudensity.neuP = 0;
 
 /*
  * plugins may add columns by appending their specifiation to the following list. The following members are supported:
@@ -321,9 +318,6 @@ window.plugin.mudensity.displayMU = function() {
   var list;
   window.plugin.mudensity.sortBy = 3;
   window.plugin.mudensity.sortOrder = -1;
-  window.plugin.mudensity.enlP = 0;
-  window.plugin.mudensity.resP = 0;
-  window.plugin.mudensity.neuP = 0;
 
   if (window.plugin.mudensity.getFields()) {
     list = window.plugin.mudensity.portalTable(window.plugin.mudensity.sortBy, window.plugin.mudensity.sortOrder);
