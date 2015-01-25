@@ -13,8 +13,6 @@
 // ==/UserScript==
 
 // TODO:
-// - hash the fields instead of putting them in an array, so that reload of
-//   the chat data doesn't cause duplication
 // - give more descriptive names for the fields than just lat/long
 // - add support for sorting by distance from current location
 // - add support for exporting data, so that one can analyze offline instead
@@ -123,7 +121,11 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
             lat: (candidate.portal1.lat + candidate.portal2.lat + candidate.portal3.lat)/3,
             lng: (candidate.portal1.lng + candidate.portal2.lng + candidate.portal3.lng)/3
        };
-       window.plugin.mudensity.listFields.push(candidate);
+       var key = candidate.portal1.lat.toString() + "_" + candidate.portal1.lng.toString()
+                 + "_" + candidate.timestamp.toString() + "_"
+                 + candidate.portal3.lat.toString() + "_"
+                 + candidate.portal3.lng.toString();
+       window.plugin.mudensity.listFields[key] = candidate;
        return false;
      } else {
        // FIXME: if we have more than one field along the same link, should
@@ -159,6 +161,11 @@ window.plugin.mudensity.handleData = function(data) {
   var candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
                     timestamp: null, area: 0, center: null };
 
+  // We should add some handling here to clean up any stale entries
+  // in our 'potentials' table ('stale' defined as a link without a field)
+  // since otherwise they get double-loaded and never cleaned up.  This should
+  // be an ok place to do that, since link+field will normally come together
+  // in the same batch of data.
   $.each(data.raw.success, function(ind, json) {
 
     // find portal information
@@ -237,7 +244,7 @@ window.plugin.mudensity.handleData = function(data) {
 
 
 window.plugin.mudensity.potentials = {};
-window.plugin.mudensity.listFields = [];
+window.plugin.mudensity.listFields = {};
 window.plugin.mudensity.displayFields = [];
 window.plugin.mudensity.sortBy = 5; // fifth column: density
 window.plugin.mudensity.sortOrder = -1;
@@ -401,7 +408,7 @@ window.plugin.mudensity.displayMU = function() {
     dialog({
       html: $('<div id="mudensity">').append(list),
       dialogClass: 'ui-dialog-mudensity',
-      title: 'MU Density: ' + window.plugin.mudensity.listFields.length + ' ' + (window.plugin.mudensity.listFields.length == 1 ? 'field' : 'fields'),
+      title: 'MU Density: ' + Object.keys(window.plugin.mudensity.listFields).length + ' ' + (Object.keys(window.plugin.mudensity.listFields).length == 1 ? 'field' : 'fields'),
       id: 'portal-list',
       width: 700
     });
