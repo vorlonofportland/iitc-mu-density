@@ -13,7 +13,6 @@
 // ==/UserScript==
 
 // TODO:
-// - use a wider zoom setting on links
 // - sort by MU density by default
 // - include the MU count as a column
 // - right-justify the lat/long columns
@@ -425,7 +424,7 @@ window.plugin.mudensity.pointLink = function(field,text) {
  var lat = (field.center.lat/1E6).toFixed(6);
  var lng = (field.center.lng/1E6).toFixed(6);
 
-  var perma = '/intel?ll='+lat.toString()+','+lng.toString()+'&z=17';
+  var perma = '/intel?ll='+lat.toString()+','+lng.toString()+'&z=15';
 
   // jQuery's event handlers seem to be removed when the nodes are removed from the DOM
   var link = document.createElement("a");
