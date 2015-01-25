@@ -61,6 +61,91 @@ window.plugin.mudensity.area = function(f) {
    return Math.sqrt(s * (s - a) * (s - b) * (s - c));
 }
 
+window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
+   var point = [0,0,0];
+
+   // fudge factor: the field should be created after the link, but
+   // apparently that's not always the case?  Either way 40 seconds
+   // should be more than enough time to sync. :/
+   if (Math.abs(ts - g) > 40000)
+     return true;
+
+   for (var i = 0; i < 3; i++)
+   {
+     if (d.points[i].latE6 == portal1.portal.lat
+         && d.points[i].lngE6 == portal1.portal.lng)
+     {
+       point[i] = 1;
+     } else if (d.points[i].latE6 == f.target.lat
+                && d.points[i].lngE6 == f.target.lng)
+     {
+       point[i] = 2;
+     }
+   }
+
+   // not a match.
+   if (point[0] + point[1] + point[2] < 3)
+     return true;
+
+   for (var i = 0; i < 3; i++)
+   {
+     if (point[i] == 0)
+     {
+       var portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6 };
+       f.points.push(portal3);
+     }
+   }
+
+   if (f.points.length == f.fields.length) {
+     // just handle the easy case for now, where there's only one field.
+     if (f.points.length == 1)
+     {
+       var candidate = { portal1: portal1.portal,
+                         portal2: f.target,
+                         portal3: f.points[0],
+                         mu: f.fields[0],
+                         timestamp: g,
+                         area: 0,
+                         center: null
+       };
+
+       delete portal1.data[g];
+       if (!Object.keys(portal1.data).length)
+         delete portal1;
+       // fields with 1MU are kept up to this point to disambiguate multiple
+       // fields created at the same time but they should not be counted
+       // because they give us an upper bound on density but no lower bound
+       if (candidate.mu == 1)
+         return false;
+
+       candidate.area = window.plugin.mudensity.area(candidate);
+       candidate.center = {
+            lat: (candidate.portal1.lat + candidate.portal2.lat + candidate.portal3.lat)/3,
+            lng: (candidate.portal1.lng + candidate.portal2.lng + candidate.portal3.lng)/3
+       };
+       window.plugin.mudensity.listFields.push(candidate);
+       return false;
+     } else {
+       alert("More than one matching field from " + portal1.portal.name
+             + " to " + f.target.name + ", skipping for now.");
+     }
+   }
+}
+
+window.plugin.mudensity.handleField = function(data) {
+
+  var d = data.field.options.data;
+  var ts = data.field.options.timestamp;
+
+  $.each(window.plugin.mudensity.potentials, function(g,portal1) {
+      $.each(portal1.data, function(g,f) {
+          if (!f.target)
+            return true;
+          return window.plugin.mudensity.matchFieldAndLink(d,f,g,ts,portal1);
+      });
+  });
+}
+
 window.plugin.mudensity.handleData = function(data) {
 
   // the link and field can come in any order in the data, so we have to
@@ -81,6 +166,7 @@ window.plugin.mudensity.handleData = function(data) {
     var portal2 = null;
     var portal3 = null;
     var mu = 0;
+    var ts = json[1];
 
     $.each(json[2].plext.markup, function(ind, markup) {
       switch(markup[0]) {
@@ -95,9 +181,7 @@ window.plugin.mudensity.handleData = function(data) {
         }
         if (isField) {
           var res = parseInt(markup[1].plain, 10);
-          // ignore fields with 1MU, as this gives us an upper bound but
-          // no lower bound
-          if (res > 1) {
+          if (res > 0) {
             mu = res;
           }
         }
@@ -118,90 +202,39 @@ window.plugin.mudensity.handleData = function(data) {
 
     });
 
-    if (!portal1)
+    // skip all lines that are neither links nor fields
+    if (!portal1 || (!mu && !portal2))
       return true;
 
-    if (candidate.portal1) {
-      if (candidate.portal1.lng != portal1.lng
-          || candidate.portal1.lat != portal1.lat
-          || (portal2 && candidate.portal2)
-          || (mu && candidate.mu)
-          || candidate.timestamp != json[1])
-      {
-        candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                      timestamp: null, area: 0, center: null };
-      }
-    }
+    var loc = portal1.lat.toString() + "_" + portal1.lng.toString();
+    if (!window.plugin.mudensity.potentials[loc])
+      window.plugin.mudensity.potentials[loc] = {
+                   portal: portal1,
+                   data: {}, };
 
-    if (!candidate.portal1) {
-      candidate.portal1 = portal1;
-      candidate.timestamp = json[1];
+    var potentials = window.plugin.mudensity.potentials[loc].data;
+
+    if (!potentials[ts])
+    {
+      potentials[ts] = {fields: [], points: [], target: null, };
     }
-    if (portal2)
-      candidate.portal2 = portal2;
+    // FIXME: each time we reread the data, we wind up pushing a new set
+    // of arrays on here.  We need a way to flush these when they've been
+    // seen before.
     if (mu)
-      candidate.mu = mu;
+      potentials[ts]['fields'].push(mu);
 
-    if (candidate.portal2 && candidate.mu) {
-      // we don't try to map portals to guids because the guids aren't
-      // actually relevant for finding fields, which are just a set of
-      // points without references to the portals.
+    if (portal2)
+      potentials[ts]['target'] = portal2;
 
-      $.each(window.fields, function(g,f) {
-        var d = f.options.data;
-        var point = [0,0,0];
-        for (var i = 0; i < 3; i++)
-        {
-           if (d.points[i].latE6 == candidate.portal1.lat
-               && d.points[i].lngE6 == candidate.portal1.lng)
-           {
-             point[i] = 1;
-           } else if (d.points[i].latE6 == candidate.portal2.lat
-               && d.points[i].lngE6 == candidate.portal2.lng)
-           {
-             point[i] = 2;
-           }
-        }
-        // not a match.
-        if (point[0] + point[1] + point[2] < 3)
-          return true;
+    window.plugin.mudensity.potentials[loc].data = potentials;
 
-        // more than one match, we don't know which is which.
-        if (portal3) {
-          portal3 = null;
-          return false;
-        }
-
-        for (var i = 0; i < 3; i++)
-        {
-          if (point[i] == 0)
-          {
-              portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6 };
-          }
-        } 
-      });
-
-      if (portal3) {
-        candidate.portal3 = portal3;
-        candidate.area = window.plugin.mudensity.area(candidate);
-        candidate.center = {
-             lat: (candidate.portal1.lat + candidate.portal2.lat + candidate.portal3.lat)/3,
-             lng: (candidate.portal1.lng + candidate.portal2.lng + candidate.portal3.lng)/3 };
-//        alert("Density is between "
-//              + ((candidate.mu-.5)/candidate.area).toString()
-//              + " and "
-//              + ((candidate.mu+.5)/candidate.area).toString()
-//              + " MU/km^2");
-        window.plugin.mudensity.listFields.push(candidate);
-      }
-      candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
-                    timestamp: null, area: 0, center: null };
-    }
   });
 }
 
 
 
+window.plugin.mudensity.potentials = {};
 window.plugin.mudensity.listFields = [];
 window.plugin.mudensity.displayFields = [];
 window.plugin.mudensity.sortBy = 3; // fourth column: density
@@ -280,6 +313,37 @@ window.plugin.mudensity.getFields = function() {
   window.plugin.mudensity.displayFields = [];
 
   var displayBounds = map.getBounds();
+
+  // we may have potential fields that have shown up after the field
+  // itself was rendered, so process them now.
+  $.each(window.plugin.mudensity.potentials, function(g,portal1) {
+      $.each(portal1.data, function(g,f) {
+          // If we get here, we saw a field but are missing the target
+          // (which means an annoying boundary condition in the data).
+          // clean it up.
+          if (!f.target)
+          {
+//            alert("field at " + portal1.portal.name + " but no link; this shouldn't happen.");
+            delete portal1.data[g];
+            return true;
+          }
+          // The much more normal scenario of a link with no field.  We
+          // assume the field isn't coming, and just remove it.
+          if (!f.fields.length)
+          {
+            delete portal1.data[g];
+            return true;
+          }
+
+          $.each(window.fields, function(guid,field) {
+              var d = field.options.data;
+              var ts = field.options.timestamp;
+              return window.plugin.mudensity.matchFieldAndLink(d,f,g,ts,portal1);
+          });
+      });
+      if (!Object.keys(portal1.data).length)
+        delete window.plugin.mudensity.potentials[g];
+  });
 
   $.each(window.plugin.mudensity.listFields, function(i, field) {
     retval=true;
@@ -447,6 +511,7 @@ var setup =  function() {
     .appendTo("head");
 
   addHook('publicChatDataAvailable', window.plugin.mudensity.handleData);
+  addHook('fieldAdded', window.plugin.mudensity.handleField);
   window.chat.backgroundChannelData('plugin.mudensity', 'all', true);    //enable this plugin's interest in 'all' COMM
 
 }
