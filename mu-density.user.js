@@ -126,8 +126,10 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
        window.plugin.mudensity.listFields.push(candidate);
        return false;
      } else {
-       alert("More than one matching field from " + portal1.portal.name
-             + " to " + f.target.name + ", skipping for now.");
+       // FIXME: if we have more than one field along the same link, should
+       // we assume that the larger field is the one with the greater MU score?
+//       alert("More than one matching field from " + portal1.portal.name
+//             + " to " + f.target.name + ", skipping for now.");
      }
    }
 }
