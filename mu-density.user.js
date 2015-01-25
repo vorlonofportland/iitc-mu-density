@@ -12,6 +12,13 @@
 // @grant          none
 // ==/UserScript==
 
+// TODO:
+// - include the MU count as a column
+// - right-justify the lat/long columns
+// - hash the fields instead of putting them in an array, so that reload of
+//   the chat data doesn't cause duplication
+// - give more descriptive names for the fields than just lat/long
+// - add support for sorting by distance from current location
 
 function wrapper(plugin_info) {
 // ensure plugin framework is there, even if iitc is not yet loaded
