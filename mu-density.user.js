@@ -13,7 +13,6 @@
 // ==/UserScript==
 
 // TODO:
-// - right-justify the lat/long columns
 // - hash the fields instead of putting them in an array, so that reload of
 //   the chat data doesn't cause duplication
 // - give more descriptive names for the fields than just lat/long
@@ -269,8 +268,7 @@ window.plugin.mudensity.columns = [
     sortValue: function(value, field) { return field.center.lat; },
     format: function(cell, field, value) {
       $(cell)
-        .append(plugin.mudensity.pointLink(field,value))
-        .addClass("portalTitle");
+        .append(plugin.mudensity.pointLink(field,value));
     }
   },
   {
@@ -279,8 +277,7 @@ window.plugin.mudensity.columns = [
     sortValue: function(value, field) { return field.center.lng; },
     format: function(cell, field, value) {
       $(cell)
-        .append(plugin.mudensity.pointLink(field,value))
-        .addClass("portalTitle");
+        .append(plugin.mudensity.pointLink(field,value));
     }
   },
   {
@@ -367,6 +364,7 @@ window.plugin.mudensity.getFields = function() {
 
     window.plugin.mudensity.columns.forEach(function(column, i) {
       cell = row.insertCell(-1);
+      cell.className = 'alignR';
 
       var value = column.value(field);
       obj.values.push(value);
@@ -515,7 +513,7 @@ var setup =  function() {
 
   $("<style>")
     .prop("type", "text/css")
-    .html("#mudensity.mobile {\n  background: transparent;\n  border: 0 none !important;\n  height: 100% !important;\n  width: 100% !important;\n  left: 0 !important;\n  top: 0 !important;\n  position: absolute;\n  overflow: auto;\n}\n\n#mudensity table {\n  margin-top: 5px;\n  border-collapse: collapse;\n  empty-cells: show;\n  width: 100%;\n  clear: both;\n}\n\n#mudensity table td, #mudensity table th {\n  background-color: #1b415e;\n  border-bottom: 1px solid #0b314e;\n  color: white;\n  padding: 3px;\n}\n\n#mudensity table th {\n  text-align: center;\n}\n\n#mudensity table .alignR {\n  text-align: right;\n}\n\n#mudensity table.portals td {\n  white-space: nowrap;\n}\n\n#mudensity table th.sortable {\n  cursor: pointer;\n}\n\n#mudensity table .portalTitle {\n  min-width: 120px !important;\n  max-width: 240px !important;\n  overflow: hidden;\n  white-space: nowrap;\n  text-overflow: ellipsis;\n}\n\n#mudensity .sorted {\n  color: #FFCE00;\n}\n\n#mudensity table.filter {\n  table-layout: fixed;\n  cursor: pointer;\n  border-collapse: separate;\n  border-spacing: 1px;\n}\n\n#mudensity table.filter th {\n  text-align: left;\n  padding-left: 0.3em;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n#mudensity table.filter td {\n  text-align: right;\n  padding-right: 0.3em;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n#mudensity .filterNeu {\n  background-color: #666;\n}\n\n#mudensity table tr.res td, #mudensity .filterRes {\n  background-color: #005684;\n}\n\n#mudensity table tr.enl td, #mudensity .filterEnl {\n  background-color: #017f01;\n}\n\n#mudensity table tr.none td {\n  background-color: #000;\n}\n\n#mudensity .disclaimer {\n  margin-top: 10px;\n  font-size: 10px;\n}\n\n#mudensity.mobile table.filter tr {\n  display: block;\n  text-align: center;\n}\n#mudensity.mobile table.filter th, #mudensity.mobile table.filter td {\n  display: inline-block;\n  width: 22%;\n}\n\n")
+    .html("#mudensity.mobile {\n  background: transparent;\n  border: 0 none !important;\n  height: 100% !important;\n  width: 100% !important;\n  left: 0 !important;\n  top: 0 !important;\n  position: absolute;\n  overflow: auto;\n}\n\n#mudensity table {\n  margin-top: 5px;\n  border-collapse: collapse;\n  empty-cells: show;\n  width: 100%;\n  clear: both;\n}\n\n#mudensity table td, #mudensity table th {\n  background-color: #1b415e;\n  border-bottom: 1px solid #0b314e;\n  color: white;\n  padding: 3px;\n}\n\n#mudensity table th {\n  text-align: center;\n}\n\n#mudensity table .alignR {\n  text-align: right;\n}\n\n#mudensity table.portals td {\n  white-space: nowrap;\n}\n\n#mudensity table th.sortable {\n  cursor: pointer;\n}\n\n#mudensity table .portalTitle {\n  min-width: 120px !important;\n  max-width: 240px !important;\n  overflow: hidden;\n  white-space: nowrap;\n  text-overflow: ellipsis;\n}\n\n#mudensity .sorted {\n  color: #FFCE00;\n}\n\n#mudensity table tr.none td {\n  background-color: #000;\n}\n\n#mudensity .disclaimer {\n  margin-top: 10px;\n  font-size: 10px;\n}\n\n")
     .appendTo("head");
 
   addHook('publicChatDataAvailable', window.plugin.mudensity.handleData);
