@@ -266,8 +266,11 @@ window.plugin.mudensity.columns = [
 ];
 
 //fill the displayFields array with fields avaliable on the map
-window.plugin.mudensity.getPortals = function() {
+window.plugin.mudensity.getFields = function() {
   var retval=false;
+
+  // reset, to avoid listing the same field multiple times.
+  window.plugin.mudensity.displayFields = [];
 
   var displayBounds = map.getBounds();
 
@@ -312,7 +315,7 @@ window.plugin.mudensity.displayMU = function() {
   window.plugin.mudensity.resP = 0;
   window.plugin.mudensity.neuP = 0;
 
-  if (window.plugin.mudensity.getPortals()) {
+  if (window.plugin.mudensity.getFields()) {
     list = window.plugin.mudensity.portalTable(window.plugin.mudensity.sortBy, window.plugin.mudensity.sortOrder);
   } else {
     list = $('<table class="noPortals"><tr><td>Nothing to show!</td></tr></table>');
