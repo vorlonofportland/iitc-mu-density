@@ -135,10 +135,10 @@ window.plugin.mudensity.handleData = function(data) {
 
     if (candidate.portal2 && candidate.mu) {
       // we don't try to map portals to guids because the guids aren't
-      // actually relevant for finding fields, since fields are just a set of
+      // actually relevant for finding fields, which are just a set of
       // points without references to the portals.
 
-      $.each(window.columns, function(g,f) {
+      $.each(window.fields, function(g,f) {
         var d = f.options.data;
         var point = [0,0,0];
         for (var i = 0; i < 3; i++)
@@ -194,27 +194,26 @@ window.plugin.mudensity.handleData = function(data) {
 
 
 window.plugin.mudensity.listFields = [];
-window.plugin.mudensity.listPortals = [];
+window.plugin.mudensity.displayFields = [];
 window.plugin.mudensity.sortBy = 1; // second column: level
 window.plugin.mudensity.sortOrder = -1;
 window.plugin.mudensity.enlP = 0;
 window.plugin.mudensity.resP = 0;
 window.plugin.mudensity.neuP = 0;
-window.plugin.mudensity.filter = 0;
 
 /*
  * plugins may add columns by appending their specifiation to the following list. The following members are supported:
  * title: String
  *     Name of the column. Required.
- * value: function(portal)
+ * value: function(field)
  *     The raw value of this column. Can by anything. Required, but can be dummy implementation if sortValue and format
  *     are implemented.
- * sortValue: function(value, portal)
+ * sortValue: function(value, field)
  *     The value to sort by. Optional, uses value if omitted. The raw value is passed as first argument.
- * sort: function(valueA, valueB, portalA, portalB)
- *     Custom sorting function. See Array.sort() for details on return value. Both the raw values and the portal objects
+ * sort: function(valueA, valueB, fieldA, fieldB)
+ *     Custom sorting function. See Array.sort() for details on return value. Both the raw values and the field objects
  *     are passed as arguments. Optional. Set to null to disable sorting
- * format: function(cell, portal, value)
+ * format: function(cell, field, value)
  *     Used to fill and format the cell, which is given as a DOM node. If omitted, the raw value is put in the cell.
  * defaultOrder: -1|1
  *     Which order should by default be used for this column. -1 means descending. Default: 1
@@ -223,121 +222,44 @@ window.plugin.mudensity.filter = 0;
 
 window.plugin.mudensity.columns = [
   {
-    title: "Portal 1",
-    value: function(portal) { return portal.options.data.title; },
-    sortValue: function(value, portal) { return value.toLowerCase(); },
-    format: function(cell, portal, value) {
-      $(cell)
-        .append(plugin.mudensity.getPortalLink(portal))
-        .addClass("portalTitle");
-    }
+    title: "Latitude",
+    value: function(field) { return (field.center.lat/1E6).toFixed(6).toString(); },
+    sortValue: function(value, field) { return field.center.lat; },
   },
   {
-    title: "Portal 2",
-    value: function(portal) { return portal.options.data.title; },
-    sortValue: function(value, portal) { return value.toLowerCase(); },
-    format: function(cell, portal, value) {
-      $(cell)
-        .append(plugin.mudensity.getPortalLink(portal))
-        .addClass("portalTitle");
-    }
+    title: "Longitude",
+    value: function(field) { return (field.center.lng/1E6).toFixed(6).toString(); },
+    sortValue: function(value, field) { return field.center.lng; },
   },
   {
-    title: "Portal 3",
-    value: function(portal) { return portal.options.data.title; },
-    sortValue: function(value, portal) { return value.toLowerCase(); },
-    format: function(cell, portal, value) {
-      $(cell)
-        .append(plugin.mudensity.getPortalLink(portal))
-        .addClass("portalTitle");
-    }
+    title: "Area",
+    value: function(field) { return field.area.toFixed(3).toString() + " km^2"; },
+    sortValue: function(value, field) { return field.area; },
   },
   {
     title: "MU density",
-    value: function(portal) { return portal.options.team; },
-    format: function(cell, portal, value) {
-      $(cell).text(['NEU', 'RES', 'ENL'][value]);
-    }
-  },
-  {
-    title: "Links",
-    value: function(portal) { return window.getPortalLinks(portal.options.guid); },
-    sortValue: function(value, portal) { return value.in.length + value.out.length; },
-    format: function(cell, portal, value) {
-      $(cell)
-        .addClass("alignR")
-        .addClass('help')
-        .attr('title', 'In:\t' + value.in.length + '\nOut:\t' + value.out.length)
-        .text(value.in.length+value.out.length);
-    }
-  },
-  {
-    title: "Fields",
-    value: function(portal) { return getPortalFieldsCount(portal.options.guid) },
-    format: function(cell, portal, value) {
-      $(cell)
-        .addClass("alignR")
-        .text(value);
-    }
-  },
-  {
-    title: "AP",
-    value: function(portal) {
-      var links = window.getPortalLinks(portal.options.guid);
-      var fields = getPortalFieldsCount(portal.options.guid);
-      return portalApGainMaths(portal.options.data.resCount, links.in.length+links.out.length, fields);
+    value: function(field) {
+        var low = (field.mu-.5)/field.area;
+        var high = (field.mu+.5)/field.area;
+        return low.toString() + "-" + high.toString() + " MU/km^2";
     },
-    sortValue: function(value, portal) { return value.enemyAp; },
-    format: function(cell, portal, value) {
-      var title = '';
-      if (PLAYER.team == portal.options.data.team) {
-        title += 'Friendly AP:\t'+value.friendlyAp+'\n'
-               + '- deploy '+(8-portal.options.data.resCount)+' resonator(s)\n'
-               + '- upgrades/mods unknown\n';
-      }
-      title += 'Enemy AP:\t'+value.enemyAp+'\n'
-             + '- Destroy AP:\t'+value.destroyAp+'\n'
-             + '- Capture AP:\t'+value.captureAp;
-
-      $(cell)
-        .addClass("alignR")
-        .addClass('help')
-        .prop('title', title)
-        .html(digits(value.enemyAp));
-    }
+    sortValue: function(value, field) { return field.mu/field.area; },
   },
 ];
 
-//fill the listPortals array with portals avaliable on the map (level filtered portals will not appear in the table)
+//fill the displayFields array with fields avaliable on the map
 window.plugin.mudensity.getPortals = function() {
-  //filter : 0 = All, 1 = Neutral, 2 = Res, 3 = Enl, -x = all but x
   var retval=false;
 
   var displayBounds = map.getBounds();
 
-  window.plugin.mudensity.listPortals = [];
-  $.each(window.portals, function(i, portal) {
-    // eliminate offscreen portals (selected, and in padding)
-    if(!displayBounds.contains(portal.getLatLng())) return true;
-
+  $.each(window.plugin.mudensity.listFields, function(i, field) {
     retval=true;
 
-    switch (portal.options.team) {
-      case TEAM_RES:
-        window.plugin.mudensity.resP++;
-        break;
-      case TEAM_ENL:
-        window.plugin.mudensity.enlP++;
-        break;
-      default:
-        window.plugin.mudensity.neuP++;
-    }
-
     // cache values and DOM nodes
-    var obj = { portal: portal, values: [], sortValues: [] };
+    var obj = { field: field, values: [], sortValues: [] };
 
     var row = document.createElement('tr');
-    row.className = TEAM_TO_CSS[portal.options.team];
     obj.row = row;
 
     var cell = row.insertCell(-1);
@@ -346,35 +268,34 @@ window.plugin.mudensity.getPortals = function() {
     window.plugin.mudensity.columns.forEach(function(column, i) {
       cell = row.insertCell(-1);
 
-      var value = column.value(portal);
+      var value = column.value(field);
       obj.values.push(value);
 
-      obj.sortValues.push(column.sortValue ? column.sortValue(value, portal) : value);
+      obj.sortValues.push(column.sortValue ? column.sortValue(value, field) : value);
 
       if(column.format) {
-        column.format(cell, portal, value);
+        column.format(cell, field, value);
       } else {
         cell.textContent = value;
       }
     });
 
-    window.plugin.mudensity.listPortals.push(obj);
+    window.plugin.mudensity.displayFields.push(obj);
   });
 
   return retval;
 }
 
-window.plugin.mudensity.displayPL = function() {
+window.plugin.mudensity.displayMU = function() {
   var list;
   window.plugin.mudensity.sortBy = 1;
   window.plugin.mudensity.sortOrder = -1;
   window.plugin.mudensity.enlP = 0;
   window.plugin.mudensity.resP = 0;
   window.plugin.mudensity.neuP = 0;
-  window.plugin.mudensity.filter = 0;
 
   if (window.plugin.mudensity.getPortals()) {
-    list = window.plugin.mudensity.portalTable(window.plugin.mudensity.sortBy, window.plugin.mudensity.sortOrder,window.plugin.mudensity.filter);
+    list = window.plugin.mudensity.portalTable(window.plugin.mudensity.sortBy, window.plugin.mudensity.sortOrder);
   } else {
     list = $('<table class="noPortals"><tr><td>Nothing to show!</td></tr></table>');
   };
@@ -385,29 +306,27 @@ window.plugin.mudensity.displayPL = function() {
     dialog({
       html: $('<div id="mudensity">').append(list),
       dialogClass: 'ui-dialog-mudensity',
-      title: 'Portal list: ' + window.plugin.mudensity.listPortals.length + ' ' + (window.plugin.mudensity.listPortals.length == 1 ? 'portal' : 'portals'),
+      title: 'MU Density: ' + window.plugin.mudensity.listFields.length + ' ' + (window.plugin.mudensity.listFields.length == 1 ? 'field' : 'fields'),
       id: 'portal-list',
       width: 700
     });
   }
 }
 
-window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
-  // save the sortBy/sortOrder/filter
+window.plugin.mudensity.portalTable = function(sortBy, sortOrder) {
+  // save the sortBy/sortOrder
   window.plugin.mudensity.sortBy = sortBy;
   window.plugin.mudensity.sortOrder = sortOrder;
-  window.plugin.mudensity.filter = filter;
 
-  var portals = window.plugin.mudensity.listPortals;
-  var fields = window.plugin.mudensity.listFields;
+  var fields = window.plugin.mudensity.displayFields;
   var sortColumn = window.plugin.mudensity.columns[sortBy];
 
-  portals.sort(function(a, b) {
+  fields.sort(function(a, b) {
     var valueA = a.sortValues[sortBy];
     var valueB = b.sortValues[sortBy];
 
     if(sortColumn.sort) {
-      return sortOrder * sortColumn.sort(valueA, valueB, a.portal, b.portal);
+      return sortOrder * sortColumn.sort(valueA, valueB, a.field, b.field);
     }
 
     return sortOrder *
@@ -415,14 +334,6 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
       valueA > valueB ?  1 :
       0);
   });
-
-  if(filter !== 0) {
-    portals = portals.filter(function(obj) {
-      return filter < 0
-        ? obj.portal.options.team+1 != -filter
-        : obj.portal.options.team+1 == filter;
-    });
-  }
 
   var table, row, cell;
   var container = $('<div>');
@@ -433,7 +344,7 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
 
   row = table.insertRow(-1);
 
-  var length = window.plugin.mudensity.listPortals.length;
+  var length = window.plugin.mudensity.displayFields.length;
 
   ["All", "Neutral", "Resistance", "Enlightened"].forEach(function(label, i) {
     cell = row.appendChild(document.createElement('th'));
@@ -494,12 +405,12 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
           order = column.defaultOrder < 0 ? -1 : 1;
         }
 
-        $('#mudensity').empty().append(window.plugin.mudensity.portalTable(i, order, filter));
+        $('#mudensity').empty().append(window.plugin.mudensity.portalTable(i, order));
       });
     }
   });
 
-  portals.forEach(function(obj, i) {
+  fields.forEach(function(obj, i) {
     var row = obj.row
     if(row.parentNode) row.parentNode.removeChild(row);
 
@@ -514,33 +425,9 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
   return container;
 }
 
-// portal link - single click: select portal
-//               double click: zoom to and select portal
-// code from getPortalLink function by xelio from iitc: AP List - https://raw.github.com/breunigs/ingress-intel-total-conversion/gh-pages/plugins/ap-list.user.js
-window.plugin.mudensity.getPortalLink = function(portal) {
-  var coord = portal.getLatLng();
-  var perma = '/intel?ll='+coord.lat+','+coord.lng+'&z=17&pll='+coord.lat+','+coord.lng;
-
-  // jQuery's event handlers seem to be removed when the nodes are remove from the DOM
-  var link = document.createElement("a");
-  link.textContent = portal.options.data.title;
-  link.href = perma;
-  link.addEventListener("click", function(ev) {
-    renderPortalDetails(portal.options.guid);
-    ev.preventDefault();
-    return false;
-  }, false);
-  link.addEventListener("dblclick", function(ev) {
-    zoomToAndShowPortal(portal.options.guid, [coord.lat, coord.lng]);
-    ev.preventDefault();
-    return false;
-  });
-  return link;
-}
-
 window.plugin.mudensity.onPaneChanged = function(pane) {
   if(pane == "plugin-mudensity")
-    window.plugin.mudensity.displayPL();
+    window.plugin.mudensity.displayMU();
   else
     $("#mudensity").remove()
 };
@@ -550,7 +437,7 @@ var setup =  function() {
     android.addPane("plugin-mudensity", "MU Density", "ic_action_paste");
     addHook("paneChanged", window.plugin.mudensity.onPaneChanged);
   } else {
-    $('#toolbox').append(' <a onclick="window.plugin.mudensity.displayPL()" title="Show MU density for created fields">MU Density</a>');
+    $('#toolbox').append(' <a onclick="window.plugin.mudensity.displayMU()" title="Show MU density for created fields">MU Density</a>');
   }
 
   $("<style>")
