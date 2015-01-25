@@ -13,7 +13,6 @@
 // ==/UserScript==
 
 // TODO:
-// - sort by MU density by default
 // - include the MU count as a column
 // - right-justify the lat/long columns
 // - hash the fields instead of putting them in an array, so that reload of
@@ -205,7 +204,7 @@ window.plugin.mudensity.handleData = function(data) {
 
 window.plugin.mudensity.listFields = [];
 window.plugin.mudensity.displayFields = [];
-window.plugin.mudensity.sortBy = 1; // second column: level
+window.plugin.mudensity.sortBy = 3; // fourth column: density
 window.plugin.mudensity.sortOrder = -1;
 window.plugin.mudensity.enlP = 0;
 window.plugin.mudensity.resP = 0;
@@ -320,7 +319,7 @@ window.plugin.mudensity.getFields = function() {
 
 window.plugin.mudensity.displayMU = function() {
   var list;
-  window.plugin.mudensity.sortBy = 1;
+  window.plugin.mudensity.sortBy = 3;
   window.plugin.mudensity.sortOrder = -1;
   window.plugin.mudensity.enlP = 0;
   window.plugin.mudensity.resP = 0;
