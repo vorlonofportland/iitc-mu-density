@@ -13,7 +13,6 @@
 // ==/UserScript==
 
 // TODO:
-// - include the MU count as a column
 // - right-justify the lat/long columns
 // - hash the fields instead of putting them in an array, so that reload of
 //   the chat data doesn't cause duplication
@@ -67,6 +66,8 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
    // fudge factor: the field should be created after the link, but
    // apparently that's not always the case?  Either way 40 seconds
    // should be more than enough time to sync. :/
+   // And in some cases this does give wrong results due to two fields created
+   // within seconds of each other by way of different links. Bah.
    if (Math.abs(ts - g) > 40000)
      return true;
 
@@ -239,7 +240,7 @@ window.plugin.mudensity.handleData = function(data) {
 window.plugin.mudensity.potentials = {};
 window.plugin.mudensity.listFields = [];
 window.plugin.mudensity.displayFields = [];
-window.plugin.mudensity.sortBy = 3; // fourth column: density
+window.plugin.mudensity.sortBy = 5; // fifth column: density
 window.plugin.mudensity.sortOrder = -1;
 
 /*
@@ -291,6 +292,11 @@ window.plugin.mudensity.columns = [
         .append(value + " km<sup>2</sup>");
     }
   },
+  {
+    title: "total MU",
+    value: function(field) { return field.mu.toString(); },
+    sortValue: function(field) { return field.mu; },
+  },  
   {
     title: "MU density",
     value: function(field) {
@@ -382,7 +388,7 @@ window.plugin.mudensity.getFields = function() {
 
 window.plugin.mudensity.displayMU = function() {
   var list;
-  window.plugin.mudensity.sortBy = 3;
+  window.plugin.mudensity.sortBy = 4;
   window.plugin.mudensity.sortOrder = -1;
 
   if (window.plugin.mudensity.getFields()) {
