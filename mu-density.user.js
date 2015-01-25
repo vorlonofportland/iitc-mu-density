@@ -57,15 +57,38 @@ window.plugin.mudensity.area = function(f) {
    return Math.sqrt(s * (s - a) * (s - b) * (s - c));
 }
 
-window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
+window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
+   // Before we try to match our comms data to a field, we first check for
+   // the link object, whose timestamp is different from the timestamp of the
+   // comms message but will be the same as the timestamp of one of the fields.
+   if (!f.link_ts)
+   {
+     $.each(window.links, function(discard,link) {
+        if (link.options.data.oLatE6 == portal1.portal.lat
+            && link.options.data.oLngE6 == portal1.portal.lng
+            && link.options.data.dLatE6 == f.target.lat
+            && link.options.data.dLngE6 == f.target.lng)
+        {
+          f.link_ts = link.options.timestamp;
+          return false;
+        }
+     });
+   }
+
+   if (!f.link_ts)
+   {
+     // link object must not be loaded yet; skip for now.
+     return false;
+   }
+
    var point = [0,0,0];
 
-   // fudge factor: the field should be created after the link, but
-   // apparently that's not always the case?  Either way 40 seconds
-   // should be more than enough time to sync. :/
-   // And in some cases this does give wrong results due to two fields created
-   // within seconds of each other by way of different links. Bah.
-   if (Math.abs(ts - g) > 40000)
+   // When fields are created, they appear to show up either with the same
+   // timestamp as the link, or (in the case of multiple fields created by the
+   // same link) with a timestamp shortly *before* the timestamp of the
+   // link... even though the comms messages all get the same timestamp.  Give
+   // a 3 second fudge factor for now.
+   if (field_ts > f.link_ts || ((f.link_ts - field_ts) > 3000))
      return true;
 
    for (var i = 0; i < 3; i++)
@@ -102,7 +125,7 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
                          portal2: f.target,
                          portal3: f.points[0],
                          mu: f.fields[0],
-                         timestamp: g,
+                         timestamp: f.link_ts,
                          area: 0,
                          center: null
        };
@@ -139,13 +162,13 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,ts,portal1) {
 window.plugin.mudensity.handleField = function(data) {
 
   var d = data.field.options.data;
-  var ts = data.field.options.timestamp;
+  var field_ts = data.field.options.timestamp;
 
   $.each(window.plugin.mudensity.potentials, function(g,portal1) {
       $.each(portal1.data, function(g,f) {
           if (!f.target)
             return true;
-          return window.plugin.mudensity.matchFieldAndLink(d,f,g,ts,portal1);
+          return window.plugin.mudensity.matchFieldAndLink(d,f,g,field_ts,portal1);
       });
   });
 }
@@ -225,7 +248,7 @@ window.plugin.mudensity.handleData = function(data) {
 
     if (!potentials[ts])
     {
-      potentials[ts] = {fields: [], points: [], target: null, };
+      potentials[ts] = {fields: [], points: [], target: null, link_ts: 0 };
     }
     // FIXME: each time we reread the data, we wind up pushing a new set
     // of arrays on here.  We need a way to flush these when they've been
@@ -349,8 +372,8 @@ window.plugin.mudensity.getFields = function() {
 
           $.each(window.fields, function(guid,field) {
               var d = field.options.data;
-              var ts = field.options.timestamp;
-              return window.plugin.mudensity.matchFieldAndLink(d,f,g,ts,portal1);
+              var field_ts = field.options.timestamp;
+              return window.plugin.mudensity.matchFieldAndLink(d,f,g,field_ts,portal1);
           });
       });
       if (!Object.keys(portal1.data).length)
