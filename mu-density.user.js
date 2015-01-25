@@ -138,7 +138,7 @@ window.plugin.mudensity.handleData = function(data) {
       // actually relevant for finding fields, since fields are just a set of
       // points without references to the portals.
 
-      $.each(window.fields, function(g,f) {
+      $.each(window.columns, function(g,f) {
         var d = f.options.data;
         var point = [0,0,0];
         for (var i = 0; i < 3; i++)
@@ -203,11 +203,11 @@ window.plugin.mudensity.neuP = 0;
 window.plugin.mudensity.filter = 0;
 
 /*
- * plugins may add fields by appending their specifiation to the following list. The following members are supported:
+ * plugins may add columns by appending their specifiation to the following list. The following members are supported:
  * title: String
  *     Name of the column. Required.
  * value: function(portal)
- *     The raw value of this field. Can by anything. Required, but can be dummy implementation if sortValue and format
+ *     The raw value of this column. Can by anything. Required, but can be dummy implementation if sortValue and format
  *     are implemented.
  * sortValue: function(value, portal)
  *     The value to sort by. Optional, uses value if omitted. The raw value is passed as first argument.
@@ -221,7 +221,7 @@ window.plugin.mudensity.filter = 0;
  */
 
 
-window.plugin.mudensity.fields = [
+window.plugin.mudensity.columns = [
   {
     title: "Portal 1",
     value: function(portal) { return portal.options.data.title; },
@@ -343,16 +343,16 @@ window.plugin.mudensity.getPortals = function() {
     var cell = row.insertCell(-1);
     cell.className = 'alignR';
 
-    window.plugin.mudensity.fields.forEach(function(field, i) {
+    window.plugin.mudensity.columns.forEach(function(column, i) {
       cell = row.insertCell(-1);
 
-      var value = field.value(portal);
+      var value = column.value(portal);
       obj.values.push(value);
 
-      obj.sortValues.push(field.sortValue ? field.sortValue(value, portal) : value);
+      obj.sortValues.push(column.sortValue ? column.sortValue(value, portal) : value);
 
-      if(field.format) {
-        field.format(cell, portal, value);
+      if(column.format) {
+        column.format(cell, portal, value);
       } else {
         cell.textContent = value;
       }
@@ -400,14 +400,14 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
 
   var portals = window.plugin.mudensity.listPortals;
   var fields = window.plugin.mudensity.listFields;
-  var sortField = window.plugin.mudensity.fields[sortBy];
+  var sortColumn = window.plugin.mudensity.columns[sortBy];
 
   portals.sort(function(a, b) {
     var valueA = a.sortValues[sortBy];
     var valueB = b.sortValues[sortBy];
 
-    if(sortField.sort) {
-      return sortOrder * sortField.sort(valueA, valueB, a.portal, b.portal);
+    if(sortColumn.sort) {
+      return sortOrder * sortColumn.sort(valueA, valueB, a.portal, b.portal);
     }
 
     return sortOrder *
@@ -477,10 +477,10 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
   cell = row.appendChild(document.createElement('th'));
   cell.textContent = '#';
 
-  window.plugin.mudensity.fields.forEach(function(field, i) {
+  window.plugin.mudensity.columns.forEach(function(column, i) {
     cell = row.appendChild(document.createElement('th'));
-    cell.textContent = field.title;
-    if(field.sort !== null) {
+    cell.textContent = column.title;
+    if(column.sort !== null) {
       cell.classList.add("sortable");
       if(i == window.plugin.mudensity.sortBy) {
         cell.classList.add("sorted");
@@ -491,7 +491,7 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder, filter) {
         if(i == sortBy) {
           order = -sortOrder;
         } else {
-          order = field.defaultOrder < 0 ? -1 : 1;
+          order = column.defaultOrder < 0 ? -1 : 1;
         }
 
         $('#mudensity').empty().append(window.plugin.mudensity.portalTable(i, order, filter));
