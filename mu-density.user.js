@@ -225,23 +225,41 @@ window.plugin.mudensity.columns = [
     title: "Latitude",
     value: function(field) { return (field.center.lat/1E6).toFixed(6).toString(); },
     sortValue: function(value, field) { return field.center.lat; },
+    format: function(cell, field, value) {
+      $(cell)
+        .append(plugin.mudensity.pointLink(field,value))
+        .addClass("portalTitle");
+    }
   },
   {
     title: "Longitude",
     value: function(field) { return (field.center.lng/1E6).toFixed(6).toString(); },
     sortValue: function(value, field) { return field.center.lng; },
+    format: function(cell, field, value) {
+      $(cell)
+        .append(plugin.mudensity.pointLink(field,value))
+        .addClass("portalTitle");
+    }
   },
   {
     title: "Area",
-    value: function(field) { return field.area.toFixed(3).toString() + " km^2"; },
+    value: function(field) { return field.area.toFixed(3).toString(); },
     sortValue: function(value, field) { return field.area; },
+    format: function(cell, field, value) {
+//      var super = document.createElement("super");
+//      super.textContent = '2';
+      $(cell)
+        .append(value + " km^2");
+//        .append(super);
+    }
   },
   {
     title: "MU density",
     value: function(field) {
         var low = (field.mu-.5)/field.area;
         var high = (field.mu+.5)/field.area;
-        return low.toString() + "-" + high.toString() + " MU/km^2";
+        return low.toFixed(3).toString() +
+               "-" + high.toFixed(3).toString() + " MU/km^2";
     },
     sortValue: function(value, field) { return field.mu/field.area; },
   },
@@ -423,6 +441,21 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder) {
     + 'Click on <b>All, Neutral, Resistance, Enlightened</b> to only show portals owner by that faction or on the number behind the factions to show all but those portals.</div>');
 
   return container;
+}
+
+// pointLink - single click: zoom to location
+// code from getPortalLink function by xelio from iitc: AP List - https://raw.github.com/breunigs/ingress-intel-total-conversion/gh-pages/plugins/ap-list.user.js
+window.plugin.mudensity.pointLink = function(field,text) {
+ var lat = (field.center.lat/1E6).toFixed(6);
+ var lng = (field.center.lng/1E6).toFixed(6);
+
+  var perma = '/intel?ll='+lat.toString()+','+lng.toString()+'&z=17';
+
+  // jQuery's event handlers seem to be removed when the nodes are removed from the DOM
+  var link = document.createElement("a");
+  link.textContent = text;
+  link.href = perma;
+  return link;
 }
 
 window.plugin.mudensity.onPaneChanged = function(pane) {
