@@ -475,7 +475,7 @@ window.plugin.mudensity.displayMU = function() {
       dialogClass: 'ui-dialog-mudensity',
       title: 'MU Density: ' + Object.keys(window.plugin.mudensity.listFields).length + ' ' + (Object.keys(window.plugin.mudensity.listFields).length == 1 ? 'field' : 'fields'),
       id: 'portal-list',
-      width: 700
+      width: 750
     });
   }
 }
