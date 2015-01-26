@@ -122,8 +122,12 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
    {
      if (point[i] == 0)
      {
+       var name = '3';
+       if (window.portals[d.points[i].guid]) {
+         name = window.portals[d.points[i].guid].options.data.title;
+       }
        var portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6,
-                       guid: d.points[i].guid };
+                       guid: d.points[i].guid, name: name };
        f.points.push(portal3);
      }
    }
@@ -314,6 +318,7 @@ window.plugin.mudensity.columns = [
     sortValue: function(value, field) { return field.center.lat; },
     format: function(cell, field, value) {
       $(cell)
+        .addClass('alignR')
         .append(plugin.mudensity.pointLink(field,value));
     }
   },
@@ -323,6 +328,7 @@ window.plugin.mudensity.columns = [
     sortValue: function(value, field) { return field.center.lng; },
     format: function(cell, field, value) {
       $(cell)
+        .addClass('alignR')
         .append(plugin.mudensity.pointLink(field,value));
     }
   },
@@ -333,9 +339,11 @@ window.plugin.mudensity.columns = [
     },
     format: function(cell, field, value) {
       return $(cell)
-             .append(window.plugin.mudensity.getPortalLink(field.portal1, "[1]"))
-             .append(window.plugin.mudensity.getPortalLink(field.portal2, "[2]"))
-             .append(window.plugin.mudensity.getPortalLink(field.portal3, "[3]"));
+             .append(window.plugin.mudensity.getPortalLink(field.portal1))
+             .append("<br/>")
+             .append(window.plugin.mudensity.getPortalLink(field.portal2))
+             .append("<br/>")
+             .append(window.plugin.mudensity.getPortalLink(field.portal3));
     },
   },
   {
@@ -344,6 +352,7 @@ window.plugin.mudensity.columns = [
     sortValue: function(value, field) { return field.area; },
     format: function(cell, field, value) {
       $(cell)
+        .addClass('alignR')
         .append(value + " km<sup>2</sup>");
     }
   },
@@ -351,6 +360,11 @@ window.plugin.mudensity.columns = [
     title: "total MU",
     value: function(field) { return field.mu.toString(); },
     sortValue: function(field) { return field.mu; },
+    format: function(cell, field, value) {
+      $(cell)
+        .addClass('alignR')
+        .append(value);
+    },
   },  
   {
     title: "MU density",
@@ -363,6 +377,7 @@ window.plugin.mudensity.columns = [
     sortValue: function(value, field) { return field.mu/field.area; },
     format: function(cell, field, value) {
       $(cell)
+        .addClass('alignR')
         .append(value + " MU/km<sup>2</sup>");
     }
   },
@@ -422,7 +437,6 @@ window.plugin.mudensity.getFields = function() {
 
     window.plugin.mudensity.columns.forEach(function(column, i) {
       cell = row.insertCell(-1);
-      cell.className = 'alignR';
 
       var value = column.value(field);
       obj.values.push(value);
@@ -542,14 +556,14 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder) {
 // portal link - single click: select portal
 //               double click: zoom to and select portal
 // code from getPortalLink function by xelio from iitc: AP List - https://raw.github.com/breunigs/ingress-intel-total-conversion/gh-pages/plugins/ap-list.user.js
-window.plugin.mudensity.getPortalLink = function(portal, text) {
+window.plugin.mudensity.getPortalLink = function(portal) {
   var lat = (portal.lat/1E6).toFixed(6);
   var lng = (portal.lng/1E6).toFixed(6);
   var perma = '/intel?ll='+lat+','+lng+'&z=17&pll='+lat+','+lng;
 
   // jQuery's event handlers seem to be removed when the nodes are remove from the DOM
   var link = document.createElement("a");
-  link.textContent = text;
+  link.textContent = "[" + portal.name + "]";
   link.href = perma;
   link.addEventListener("click", function(ev) {
     renderPortalDetails(portal.guid);
