@@ -132,6 +132,9 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
      }
    }
 
+   // FIXME: we don't check that we aren't pushing the same field onto
+   // f.points multiple times, which could cause the same field to be registered
+   // with two different MU counts when one of the fields has dropped
    if (f.points.length == f.fields.length) {
      var candidates = [];
 
