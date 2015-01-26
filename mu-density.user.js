@@ -21,7 +21,7 @@
 
 
 // TODO:
-// - give more descriptive names for the fields than just lat/long
+// - add support for clicking on latitude/longitude to zoom to the field
 // - add support for sorting by distance from current location
 // - add support for exporting data, so that one can analyze offline instead
 //   of constantly reloading intel
@@ -78,6 +78,8 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
             && link.options.data.dLngE6 == f.target.lng)
         {
           f.link_ts = link.options.timestamp;
+          portal1.portal.guid = link.options.data.oGuid;
+          f.target.guid = link.options.data.dGuid;
           return false;
         }
      });
@@ -120,7 +122,8 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
    {
      if (point[i] == 0)
      {
-       var portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6 };
+       var portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6,
+                       guid: d.points[i].guid };
        f.points.push(portal3);
      }
    }
@@ -236,7 +239,8 @@ window.plugin.mudensity.handleData = function(data) {
       case 'PORTAL':
         var portal = { name: markup[1].name,
                        lat: markup[1].latE6,
-                       lng: markup[1].lngE6 };
+                       lng: markup[1].lngE6,
+                       guid: null };
         if (!portal1)
           portal1 = portal;
         else
@@ -281,7 +285,7 @@ window.plugin.mudensity.handleData = function(data) {
 window.plugin.mudensity.potentials = {};
 window.plugin.mudensity.listFields = {};
 window.plugin.mudensity.displayFields = [];
-window.plugin.mudensity.sortBy = 5; // fifth column: density
+window.plugin.mudensity.sortBy = 5; // sixth column: density
 window.plugin.mudensity.sortOrder = -1;
 
 /*
@@ -321,6 +325,18 @@ window.plugin.mudensity.columns = [
       $(cell)
         .append(plugin.mudensity.pointLink(field,value));
     }
+  },
+  {
+    title: "Portals",
+    value: function(field) {
+      return false;
+    },
+    format: function(cell, field, value) {
+      return $(cell)
+             .append(window.plugin.mudensity.getPortalLink(field.portal1, "[1]"))
+             .append(window.plugin.mudensity.getPortalLink(field.portal2, "[2]"))
+             .append(window.plugin.mudensity.getPortalLink(field.portal3, "[3]"));
+    },
   },
   {
     title: "Area",
@@ -428,7 +444,7 @@ window.plugin.mudensity.getFields = function() {
 
 window.plugin.mudensity.displayMU = function() {
   var list;
-  window.plugin.mudensity.sortBy = 4;
+  window.plugin.mudensity.sortBy = 5;
   window.plugin.mudensity.sortOrder = -1;
 
   if (window.plugin.mudensity.getFields()) {
@@ -521,6 +537,31 @@ window.plugin.mudensity.portalTable = function(sortBy, sortOrder) {
   container.append('<div class="disclaimer">Click on column headers to sort by that column.</div>');
 
   return container;
+}
+
+// portal link - single click: select portal
+//               double click: zoom to and select portal
+// code from getPortalLink function by xelio from iitc: AP List - https://raw.github.com/breunigs/ingress-intel-total-conversion/gh-pages/plugins/ap-list.user.js
+window.plugin.mudensity.getPortalLink = function(portal, text) {
+  var lat = (portal.lat/1E6).toFixed(6);
+  var lng = (portal.lng/1E6).toFixed(6);
+  var perma = '/intel?ll='+lat+','+lng+'&z=17&pll='+lat+','+lng;
+
+  // jQuery's event handlers seem to be removed when the nodes are remove from the DOM
+  var link = document.createElement("a");
+  link.textContent = text;
+  link.href = perma;
+  link.addEventListener("click", function(ev) {
+    renderPortalDetails(portal.guid);
+    ev.preventDefault();
+    return false;
+  }, false);
+  link.addEventListener("dblclick", function(ev) {
+    zoomToAndShowPortal(portal.guid, [lat, lng]);
+    ev.preventDefault();
+    return false;
+  });
+  return link;
 }
 
 // pointLink - single click: zoom to location
