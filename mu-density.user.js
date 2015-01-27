@@ -128,14 +128,11 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
        }
        var portal3 = { lat: d.points[i].latE6, lng: d.points[i].lngE6,
                        guid: d.points[i].guid, name: name };
-       f.points.push(portal3);
+       f.points[portal3.guid] = portal3;
      }
    }
 
-   // FIXME: we don't check that we aren't pushing the same field onto
-   // f.points multiple times, which could cause the same field to be registered
-   // with two different MU counts when one of the fields has dropped
-   if (f.points.length == f.fields.length) {
+   if (f.fields.length && (Object.keys(f.points).length == f.fields.length)) {
      var candidates = [];
 
      $.each(f.points, function(i,point) {
@@ -271,7 +268,7 @@ window.plugin.mudensity.handleData = function(data) {
 
     if (!potentials[ts])
     {
-      potentials[ts] = {fields: [], points: [], target: null, link_ts: 0 };
+      potentials[ts] = {fields: [], points: {}, target: null, link_ts: 0 };
     }
     // FIXME: each time we reread the data, we wind up pushing a new set
     // of arrays on here.  We need a way to flush these when they've been
