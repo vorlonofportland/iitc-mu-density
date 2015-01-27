@@ -98,7 +98,20 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
    // same link) with a timestamp shortly *before* the timestamp of the
    // link... even though the comms messages all get the same timestamp.  Give
    // a 3 second fudge factor for now.
-   if (field_ts > f.link_ts || ((f.link_ts - field_ts) > 3000))
+   // FIXME: this is still wrong if you have two links thrown within 3 seconds
+   // creating a total of 3 fields (which totally happens).  Further improving
+   // this requires:
+   // - pass 1: find all fields that match the timestamp of a link.  map them
+   //   and exclude them from further processing.
+   // - pass 2: traverse all remaining fields looking for matches.  put these
+   //   in strict /time order/ since there may be even /more/ fields created
+   //   within the 3s window than map to our point
+   // - pass 3: once /all/ fields have been mapped, truncate the list of
+   //   fields related to each link; and blacklist all fields that made the
+   //   cut to avoid any double-counting.
+   // 
+   if ((field_ts != f.link_ts && f.fields.length < 2)
+       || (f.link_ts - field_ts) > 3000)
      return true;
 
    for (var i = 0; i < 3; i++)
