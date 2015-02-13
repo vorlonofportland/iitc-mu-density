@@ -110,9 +110,20 @@ window.plugin.mudensity.matchFieldAndLink = function(d,f,g,field_ts,portal1) {
    //   fields related to each link; and blacklist all fields that made the
    //   cut to avoid any double-counting.
    // 
-   if ((field_ts != f.link_ts && f.fields.length < 2)
-       || (f.link_ts - field_ts) > 3000)
-     return true;
+
+   // If the link timestamp is earlier than the comms timestamp, use the link
+   // timestamp and expect our fields to be created at the same time.  If the
+   // link timestamp is /later/ than the comms timestamp, assume that both
+   // are inaccurate and expect the field timestamp to be earlier than
+   // either.
+   if (f.link_ts <= f.comms_ts) {
+     if ((field_ts != f.link_ts && f.fields.length < 2)
+         || (f.link_ts - field_ts) > 3000)
+       return true;
+   } else {
+     if (field_ts > f.comms_ts || (f.comms_ts - field_ts) > 3000)
+       return true;
+   }
 
    for (var i = 0; i < 3; i++)
    {
@@ -281,7 +292,8 @@ window.plugin.mudensity.handleData = function(data) {
 
     if (!potentials[ts])
     {
-      potentials[ts] = {fields: [], points: {}, target: null, link_ts: 0 };
+      potentials[ts] = {fields: [], points: {}, target: null, link_ts: 0,
+                        comms_ts: ts };
     }
     // FIXME: each time we reread the data, we wind up pushing a new set
     // of arrays on here.  We need a way to flush these when they've been
