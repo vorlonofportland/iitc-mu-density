@@ -218,12 +218,6 @@ window.plugin.mudensity.handleField = function(data) {
 
 window.plugin.mudensity.handleData = function(data) {
 
-  // the link and field can come in any order in the data, so we have to
-  // handle the possibility of the field being either first or last.  If the
-  // link makes *multiple* fields, however, we punt, since we don't know for
-  // sure which MU maps to which field.  This can be determined by seeing that
-  // there is more than one portal that both source and target portals are
-  // linked to.
   var candidate = { portal1: null, portal2: null, portal3: null, mu: 0,
                     timestamp: null, area: 0, center: null };
 
@@ -408,7 +402,7 @@ window.plugin.mudensity.columns = [
   },
 ];
 
-//fill the displayFields array with fields avaliable on the map
+//fill the displayFields array with fields available on the map
 window.plugin.mudensity.getFields = function() {
   var retval=false;
 
