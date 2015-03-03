@@ -493,7 +493,7 @@ window.plugin.mudensity.displayMU = function() {
       html: $('<div id="mudensity">').append(list),
       dialogClass: 'ui-dialog-mudensity',
       title: 'MU Density: ' + Object.keys(window.plugin.mudensity.listFields).length + ' ' + (Object.keys(window.plugin.mudensity.listFields).length == 1 ? 'field' : 'fields'),
-      id: 'portal-list',
+      id: 'mudensity',
       width: 750
     });
   }
